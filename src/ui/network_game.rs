@@ -1,3 +1,4 @@
+#[cfg(not(target_arch = "wasm32"))]
 use bones_framework::networking::online::{
     OnlineMatchmaker, OnlineMatchmakerResponse, PlayerIdxAssignment,
 };
@@ -82,10 +83,13 @@ pub enum MatchmakingStatus {
 #[derive(Clone)]
 pub struct NetworkGameState {
     match_kind: MatchKind,
+    #[cfg(not(target_arch = "wasm32"))]
     lan_service_discovery_recv: Option<lan::ServiceDiscoveryReceiver>,
+    #[cfg(not(target_arch = "wasm32"))]
     service_info: Option<lan::ServerInfo>,
     status: NetworkGameStatus,
     joined_players: usize,
+    #[cfg(not(target_arch = "wasm32"))]
     lan_servers: Vec<lan::ServerInfo>,
     ping_update_timer: Timer,
     random_seed: u64,
@@ -95,9 +99,12 @@ impl Default for NetworkGameState {
     fn default() -> Self {
         Self {
             match_kind: default(),
+            #[cfg(not(target_arch = "wasm32"))]
             lan_service_discovery_recv: default(),
+            #[cfg(not(target_arch = "wasm32"))]
             service_info: default(),
             status: default(),
+            #[cfg(not(target_arch = "wasm32"))]
             lan_servers: default(),
             joined_players: default(),
             ping_update_timer: Timer::new(Duration::from_secs(1), TimerMode::Repeating),
@@ -110,6 +117,18 @@ impl NetworkGameState {
     pub fn random_seed(&self) -> u64 {
         self.random_seed
     }
+}
+
+/// Web build only: relay matchmaking state. Kept separate from
+/// `NetworkGameState` so it can be loaded, mutated and stored back while the
+/// menu holds a borrow on the main state.
+#[cfg(target_arch = "wasm32")]
+#[derive(Default, Clone)]
+struct WsSearchState {
+    /// Relay client while a search is running.
+    client: Option<crate::net_ws::WsOnlineClient>,
+    /// egui timestamp at which the current search started.
+    started_at: Option<f64>,
 }
 
 pub fn network_game_menu(
@@ -147,6 +166,13 @@ pub fn network_game_menu(
             // TODO: set state at end. Is it initialiezd?
             let mut state = ui.ctx().get_state::<NetworkGameState>();
 
+            // The web build has no LAN: it always uses online matchmaking
+            // through the relay server.
+            #[cfg(target_arch = "wasm32")]
+            if !matches!(state.match_kind, MatchKind::Online(_)) {
+                state.match_kind = MatchKind::Online(OnlineState::default());
+            }
+
 
             let available_size = ui.available_size();
             let x_margin = available_size.x / 4.0;
@@ -164,6 +190,7 @@ pub fn network_game_menu(
                         if matches!(state.match_kind, MatchKind::Lan(..)) {
                             lan = lan.underline();
                         }
+                        #[cfg(not(target_arch = "wasm32"))]
                         if BorderedButton::themed(normal_button_style, lan)
                             .show(ui)
                             .focus_by_default(ui)
@@ -252,13 +279,11 @@ pub fn network_game_menu(
 
                     let NetworkGameState {
                         match_kind,
-                        lan_service_discovery_recv,
-                        lan_servers,
-                        service_info: host_info,
                         status,
                         ping_update_timer,
                         joined_players,
-                        random_seed
+                        random_seed,
+                        ..
                     } = &mut state;
 
                     ui.separator();
@@ -266,14 +291,15 @@ pub fn network_game_menu(
 
                     match match_kind {
                         // LAN game
+                        #[cfg(not(target_arch = "wasm32"))]
                         MatchKind::Lan(mode) => match mode {
                             LanMode::Join => {
                                 // Stop any running server
-                                if let Some(service_info) = host_info.take() {
+                                if let Some(service_info) = state.service_info.take() {
                                     lan::stop_server(&service_info);
                                     *status = NetworkGameStatus::Idle;
                                 }
-                                lan::prepare_to_join(JUMPY_LAN_SERVICE_TYPE, lan_servers, lan_service_discovery_recv, ping_update_timer);
+                                lan::prepare_to_join(JUMPY_LAN_SERVICE_TYPE, &mut state.lan_servers, &mut state.lan_service_discovery_recv, ping_update_timer);
 
                                 if *status != NetworkGameStatus::Joining {
                                     ui.label(
@@ -282,7 +308,7 @@ pub fn network_game_menu(
                                     ui.add_space(normal_text_style.size / 2.0);
 
                                     ui.indent("servers", |ui| {
-                                        for server in lan_servers.iter() {
+                                        for server in state.lan_servers.iter() {
                                             ui.horizontal(|ui| {
                                                 if BorderedButton::themed(
                                                     &meta.theme.buttons.normal,
@@ -309,7 +335,7 @@ pub fn network_game_menu(
                                             });
                                         }
 
-                                        if lan_servers.is_empty() {
+                                        if state.lan_servers.is_empty() {
                                             ui.label(
                                                 normal_text_style.rich(
                                                 localization.get("no-servers")),
@@ -387,7 +413,7 @@ pub fn network_game_menu(
                                 });
 
                                 let (is_recreated, service_info) = RUNTIME.block_on(async {
-                                    lan::prepare_to_host(host_info, JUMPY_LAN_SERVICE_TYPE, service_name).await
+                                    lan::prepare_to_host(&mut state.service_info, JUMPY_LAN_SERVICE_TYPE, service_name).await
                                 });
                                 if is_recreated {
                                     *status = NetworkGameStatus::Idle;
@@ -447,6 +473,7 @@ pub fn network_game_menu(
                             matchmaking_server,
                         }) => {
                             // Get the matchmaking server from the settings.
+                            #[cfg(not(target_arch = "wasm32"))]
                             if matchmaking_server.is_empty() {
                                 *matchmaking_server =
                                     storage
@@ -488,7 +515,11 @@ pub fn network_game_menu(
 
                             ui.add_space(normal_text_style.size);
 
+                            #[cfg(target_arch = "wasm32")]
+                            let mut ws = ui.ctx().get_state::<WsSearchState>();
+
                             match *status {
+                                #[cfg(not(target_arch = "wasm32"))]
                                 NetworkGameStatus::Idle => {
                                     if BorderedButton::themed(
                                         small_button_style,
@@ -504,6 +535,7 @@ pub fn network_game_menu(
                                         info!("Connecting to matchmaker to search for match...");
                                     }
                                 },
+                                #[cfg(not(target_arch = "wasm32"))]
                                 NetworkGameStatus::Matchmaking(matchmaking_status) => {
                                     if let Some(response) = OnlineMatchmaker::read_matchmaker_response() {
                                         match response {
@@ -568,6 +600,130 @@ pub fn network_game_menu(
                                         )
                                     );
                                 },
+                                #[cfg(target_arch = "wasm32")]
+                                NetworkGameStatus::Idle => {
+                                    if BorderedButton::themed(
+                                        small_button_style,
+                                        localization.get("search"),
+                                    )
+                                    .show(ui)
+                                    .clicked()
+                                    {
+                                        match crate::net_ws::WsOnlineClient::connect_and_search(
+                                            &crate::net_ws::relay_url(),
+                                            GAME_ID,
+                                            *player_count,
+                                        ) {
+                                            Ok(client) => {
+                                                ws.client = Some(client);
+                                                ws.started_at =
+                                                    Some(ui.ctx().input(|i| i.time));
+                                                *status = NetworkGameStatus::Matchmaking(
+                                                    MatchmakingStatus::Connecting,
+                                                );
+                                                info!("Connecting to relay to search for match...");
+                                            }
+                                            Err(err) => {
+                                                warn!("Failed to connect to relay: {err}");
+                                            }
+                                        }
+                                    }
+                                },
+                                #[cfg(target_arch = "wasm32")]
+                                NetworkGameStatus::Matchmaking(matchmaking_status) => {
+                                    // Poll the relay client without holding a borrow
+                                    // on it, so we can mutate state right after.
+                                    let (matched, closed, accepted) = match ws.client.as_ref() {
+                                        Some(client) => (
+                                            client.matched(),
+                                            client.is_closed(),
+                                            client.is_accepted(),
+                                        ),
+                                        None => (None, true, false),
+                                    };
+
+                                    if let Some(matched) = matched {
+                                        if let Some(client) = ws.client.take() {
+                                            world.resources.insert(client.into_match_socket());
+                                        }
+                                        ws.started_at = None;
+                                        *random_seed = matched.seed;
+                                        *status = NetworkGameStatus::default();
+                                        ui.ctx().set_state(MenuPage::PlayerSelect);
+                                        info!("Relay matchmaking complete, going to player select.");
+                                    } else if closed {
+                                        warn!("Relay connection closed while searching for a match");
+                                        ws.client = None;
+                                        ws.started_at = None;
+                                        *status = NetworkGameStatus::Idle;
+                                    } else {
+                                        if accepted
+                                            && matchmaking_status == MatchmakingStatus::Connecting
+                                        {
+                                            *status = NetworkGameStatus::Matchmaking(
+                                                MatchmakingStatus::WaitingForPlayers,
+                                            );
+                                            *joined_players = 1;
+                                        }
+
+                                        // If nobody else shows up within the time
+                                        // limit, fall back to a bot match instead of
+                                        // leaving the player waiting forever.
+                                        let started = ws.started_at.unwrap_or(0.0);
+                                        let timed_out =
+                                            ui.ctx().input(|i| i.time) - started > 30.0;
+                                        if timed_out {
+                                            if let Some(client) = ws.client.take() {
+                                                client.cancel();
+                                            }
+                                            ws.started_at = None;
+                                            *status = NetworkGameStatus::Idle;
+                                            ui.ctx().set_state(
+                                                crate::ui::main_menu::player_select::BotFillRequest {
+                                                    bots: player_count.saturating_sub(1),
+                                                },
+                                            );
+                                            ui.ctx().set_state(MenuPage::PlayerSelect);
+                                            info!("No online players found in time; starting a bot match instead.");
+                                        }
+                                    }
+
+                                    ui.horizontal(|ui| {
+                                        if BorderedButton::themed(
+                                            small_button_style,
+                                            localization.get("cancel"),
+                                        )
+                                        .show(ui)
+                                        .clicked()
+                                        {
+                                            if let Some(client) = ws.client.take() {
+                                                client.cancel();
+                                            }
+                                            ws.started_at = None;
+                                            *status = NetworkGameStatus::Idle;
+                                        }
+                                    });
+
+                                    ui.label(
+                                        smaller_text_style.rich(
+                                            match matchmaking_status {
+                                                MatchmakingStatus::Connecting => {
+                                                    localization.get("connecting").to_string()
+                                                }
+                                                MatchmakingStatus::WaitingForPlayers => {
+                                                    localization.get_with("waiting-for-players",
+                                                        &fluent_args! {
+                                                            "current" => *joined_players,
+                                                            "total" => *player_count
+                                                        }).to_string()
+                                                },
+                                                _ => {
+                                                    localization.get("match-ready").to_string()
+                                                }
+                                            }
+                                        )
+                                    );
+                                },
                                 NetworkGameStatus::Joining => (),
                                     // Joining is not currently implemented in the context of online play - though will likely be used
                                     // for joining online lobbies later.
@@ -576,7 +732,14 @@ pub fn network_game_menu(
                                     // for hosting online lobbies later.
 
                             }
+
+                            #[cfg(target_arch = "wasm32")]
+                            ui.ctx().set_state(ws);
                         }
+                        // On the web there is no LAN mode (match_kind is forced
+                        // to Online above), so this arm is never taken.
+                        #[cfg(target_arch = "wasm32")]
+                        _ => {}
                     }
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Min), |ui| {
@@ -588,6 +751,7 @@ pub fn network_game_menu(
                         match *status {
                             NetworkGameStatus::Idle => (),
                             NetworkGameStatus::Matchmaking(_)=> {
+                                #[cfg(not(target_arch = "wasm32"))]
                                 if let  MatchKind::Online(OnlineState {
                                     matchmaking_server,
                                     ..
@@ -597,16 +761,27 @@ pub fn network_game_menu(
                                             error!("Error stopping search: {:?}", err);
                                         }
                                     }
+                                #[cfg(target_arch = "wasm32")]
+                                {
+                                    let mut ws = ui.ctx().get_state::<WsSearchState>();
+                                    if let Some(client) = ws.client.take() {
+                                        client.cancel();
+                                    }
+                                    ws.started_at = None;
+                                    ui.ctx().set_state(ws);
+                                }
 
                                 *status = NetworkGameStatus::Idle;
                             },
                             NetworkGameStatus::Joining => {
+                                #[cfg(not(target_arch = "wasm32"))]
                                 lan::leave_server();
                                 *status = NetworkGameStatus::Idle;
                             },
                             NetworkGameStatus::Hosting => {
                                 *status = NetworkGameStatus::Idle;
-                                if let Some(service_info) = host_info.take() {
+                                #[cfg(not(target_arch = "wasm32"))]
+                                if let Some(service_info) = state.service_info.take() {
                                     lan::stop_server(&service_info);
                                 }
                             }
