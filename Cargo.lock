@@ -1249,7 +1249,7 @@ dependencies = [
 [[package]]
 name = "bones_asset"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "anyhow",
  "append-only-vec",
@@ -1283,7 +1283,7 @@ dependencies = [
 [[package]]
 name = "bones_bevy_renderer"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "anyhow",
  "bevy",
@@ -1300,7 +1300,7 @@ dependencies = [
 [[package]]
 name = "bones_ecs"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "anyhow",
  "atomicell",
@@ -1319,7 +1319,7 @@ dependencies = [
 [[package]]
 name = "bones_ecs_macros"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "bones_ecs_macros_core",
  "proc-macro2",
@@ -1328,7 +1328,7 @@ dependencies = [
 [[package]]
 name = "bones_ecs_macros_core"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1338,7 +1338,7 @@ dependencies = [
 [[package]]
 name = "bones_framework"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "anyhow",
  "async-channel",
@@ -1394,7 +1394,7 @@ dependencies = [
 [[package]]
 name = "bones_lib"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "bones_ecs",
  "instant",
@@ -1405,7 +1405,7 @@ dependencies = [
 [[package]]
 name = "bones_matchmaker_proto"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "iroh",
  "serde",
@@ -1414,7 +1414,7 @@ dependencies = [
 [[package]]
 name = "bones_schema"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "append-only-vec",
  "bones_schema_macros",
@@ -1435,7 +1435,7 @@ dependencies = [
 [[package]]
 name = "bones_schema_macros"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1445,7 +1445,7 @@ dependencies = [
 [[package]]
 name = "bones_scripting"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "async-channel",
  "bevy_tasks",
@@ -1464,7 +1464,7 @@ dependencies = [
 [[package]]
 name = "bones_utils"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "bones_utils_macros",
  "fxhash",
@@ -1479,7 +1479,7 @@ dependencies = [
 [[package]]
 name = "bones_utils_macros"
 version = "0.4.0"
-source = "git+https://github.com/fishfolk/bones#7e1d92578e1b35256debfb95492d0a519d8c796e"
+source = "git+https://github.com/thantaigocua1515-cmd/bones?branch=jumpy-web#be5e0eb4214f889bb41083c107d01e347240f446"
 dependencies = [
  "quote",
  "venial",
@@ -4323,6 +4323,7 @@ dependencies = [
  "bones_framework",
  "bytemuck",
  "egui_extras",
+ "ggrs",
  "humantime-serde",
  "indexmap 2.5.0",
  "nalgebra",
@@ -4335,6 +4336,7 @@ dependencies = [
  "puffin_egui",
  "rapier2d",
  "serde",
+ "serde_json",
  "serde_yaml",
  "shadow-rs",
  "shiftnanigans",
@@ -4343,6 +4345,8 @@ dependencies = [
  "thiserror 1.0.64",
  "tracing",
  "turborand",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
