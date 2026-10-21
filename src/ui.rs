@@ -7,7 +7,6 @@ pub mod pause_menu;
 pub mod player_image;
 pub mod scoring;
 
-#[cfg(not(target_arch = "wasm32"))]
 pub mod network_game;
 
 #[derive(HasSchema, Clone, Debug)]
