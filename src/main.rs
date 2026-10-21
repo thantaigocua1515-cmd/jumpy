@@ -22,6 +22,10 @@ pub mod sessions;
 pub mod settings;
 pub mod ui;
 
+/// WebSocket online transport, used by the web build instead of iroh.
+#[cfg(target_arch = "wasm32")]
+pub mod net_ws;
+
 mod prelude {
     pub use crate::{
         audio::*, core::prelude::*, impl_system_param, input::*, sessions::*, settings::*, GameMeta,
