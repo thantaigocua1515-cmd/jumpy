@@ -1,0 +1,1 @@
+{"dependencies":{"ws":"^8.18.0"},"description":"WebSocket matchmaker + relay server for the Jumpy web build (GGRS over WebSocket). Deploy target: Railway.","engines":{"node":">=18"},"main":"server.js","name":"jumpy-relay","private":true,"scripts":{"start":"node server.js","test":"node test-client.js"},"version":"0.1.0"}
