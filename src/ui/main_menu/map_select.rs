@@ -3,13 +3,11 @@ use crate::prelude::*;
 
 use crate::ui::map_select::{map_select_menu, MapSelectAction};
 
-#[cfg(not(target_arch = "wasm32"))]
 use crate::ui::network_game::NetworkGameState;
 
 use super::player_select::PlayerSelectState;
 use super::MenuPage;
 
-#[cfg(not(target_arch = "wasm32"))]
 use bones_framework::networking::{GgrsSessionRunner, GgrsSessionRunnerInfo, NetworkMatchSocket};
 
 /// Network message that may be sent when selecting a map.
@@ -26,12 +24,11 @@ pub fn widget(
     mut session_options: ResMut<SessionOptions>,
     assets: Res<AssetServer>,
 
-    #[cfg(not(target_arch = "wasm32"))] network_socket: Option<Res<NetworkMatchSocket>>,
+    network_socket: Option<Res<NetworkMatchSocket>>,
 ) {
     let mut select_action = MapSelectAction::None;
 
     // Get map select action from network
-    #[cfg(not(target_arch = "wasm32"))]
     if let Some(MapSelectAction::SelectMap(map_meta)) =
         handle_match_setup_messages(&network_socket, &assets)
     {
@@ -91,7 +88,6 @@ pub fn widget(
     if matches!(select_action, MapSelectAction::None) {
         select_action = world.run_system(map_select_menu, ());
 
-        #[cfg(not(target_arch = "wasm32"))]
         // Replicate local action
         replicate_map_select_action(&select_action, &network_socket, &assets);
     }
@@ -102,7 +98,6 @@ pub fn widget(
             session_options.delete = true;
             ui.ctx().set_state(MenuPage::Home);
 
-            #[cfg(not(target_arch = "wasm32"))]
             let session_runner: Box<dyn SessionRunner> = match network_socket {
                 Some(socket) => {
                     let random_seed = ui.ctx().get_state::<NetworkGameState>().random_seed();
@@ -119,9 +114,6 @@ pub fn widget(
                 }
                 None => Box::<JumpyDefaultMatchRunner>::default(),
             };
-            #[cfg(target_arch = "wasm32")]
-            let session_runner = Box::<JumpyDefaultMatchRunner>::default();
-
             let player_select_state = ui.ctx().get_state::<PlayerSelectState>();
             sessions.start_game(MatchPlugin {
                 maps,
@@ -151,7 +143,6 @@ pub fn widget(
 }
 
 /// Send a MapSelectMessage over network if local player has selected a map.
-#[cfg(not(target_arch = "wasm32"))]
 fn replicate_map_select_action(
     action: &MapSelectAction,
     socket: &Option<Res<NetworkMatchSocket>>,
@@ -172,7 +163,6 @@ fn replicate_map_select_action(
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn handle_match_setup_messages(
     socket: &Option<Res<NetworkMatchSocket>>,
     asset_server: &AssetServer,
