@@ -2,7 +2,7 @@
 use std::ops::Deref;
 
 #[cfg(not(target_arch = "wasm32"))]
-use bones_framework::networking::{socket::Socket, NetworkSocket, SocketTarget, SyncingInfo};
+use bones_framework::networking::{AnyGgrsSocket, NetworkSocket, SocketTarget, SyncingInfo};
 
 use crate::prelude::*;
 
@@ -91,7 +91,7 @@ fn scoring_menu_system(
         let match_inputs = session.world.get_resource::<MatchInputs>().unwrap();
 
         #[cfg(not(target_arch = "wasm32"))]
-        let network_socket: Option<Socket> = session
+        let network_socket: Option<AnyGgrsSocket> = session
             .world
             .get_resource::<SyncingInfo>()
             .and_then(|x| x.socket().cloned());
