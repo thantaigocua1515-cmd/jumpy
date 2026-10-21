@@ -219,34 +219,32 @@
     </div>
 
     <script>
-      // ---- Download progress for the WASM file (display only; game loading unchanged) ----
+      // ---- Aggregate download progress (WASM + game assets) ----
       (function () {
+        var TOTAL_BYTES = 39100000; // approx. size of the whole web build
         var bar = document.getElementById('load-bar');
         var pct = document.getElementById('load-pct');
-        function setProgress(frac) {
-          var p = Math.max(0, Math.min(100, Math.round(frac * 100)));
+        var got = 0;
+        var lastActivity = Date.now();
+        function render() {
+          var p = Math.max(0, Math.min(100, Math.round((got / TOTAL_BYTES) * 100)));
           if (bar) bar.style.width = p + '%';
           if (pct) pct.textContent = 'Đang tải game: ' + p + '%';
         }
+        render();
         var origFetch = window.fetch.bind(window);
         window.fetch = function () {
           var args = arguments;
           return origFetch.apply(null, args).then(function (resp) {
             try {
-              var url = '';
-              if (typeof args[0] === 'string') url = args[0];
-              else if (typeof URL !== 'undefined' && args[0] instanceof URL) url = args[0].href;
-              else if (args[0] && args[0].url) url = args[0].url;
-              var total = parseInt(resp.headers.get('content-length') || '0', 10);
-              if (url.indexOf('jumpy_bg.wasm') !== -1 && total > 0 && resp.body && resp.clone) {
-                var clone = resp.clone();
-                var reader = clone.body.getReader();
-                var got = 0;
+              if (resp && resp.body && resp.clone) {
+                var reader = resp.clone().body.getReader();
                 (function pump() {
                   reader.read().then(function (r) {
-                    if (r.done) { setProgress(1); return; }
+                    if (r.done) return;
                     got += r.value.byteLength;
-                    setProgress(got / total);
+                    lastActivity = Date.now();
+                    render();
                     pump();
                   }).catch(function () {});
                 })();
@@ -255,10 +253,15 @@
             return resp;
           });
         };
-        // Hide the loading overlay once the game canvas exists and has size.
+        // Hide the overlay once the game canvas is up and downloads have
+        // finished or gone quiet (assets the game loads outside fetch).
+        var t0 = Date.now();
         var timer = setInterval(function () {
           var c = document.querySelector('canvas');
-          if (c && c.width > 0) {
+          if (!c || !(c.width > 0)) return;
+          var quiet = Date.now() - lastActivity > 4000;
+          var done = got >= TOTAL_BYTES * 0.995;
+          if ((quiet && got > 1000000) || done || Date.now() - t0 > 240000) {
             var lc = document.querySelector('.loading-container');
             if (lc) lc.style.display = 'none';
             clearInterval(timer);
