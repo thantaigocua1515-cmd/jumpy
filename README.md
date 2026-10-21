@@ -1,90 +1,73 @@
-# Fish Folk: Jumpy
+# Fish Folk: Jumpy — Bản Web Tiếng Việt, Chơi Online Trên Trình Duyệt
 
-[![Build Status](https://img.shields.io/github/actions/workflow/status/fishfolk/jumpy/ci.yml?logo=github&labelColor=1e1c24&color=8bcfcf)](https://github.com/fishfolk/jumpy/actions) [![Documentation](https://img.shields.io/badge/documentation-fishfolk.github.io-green.svg?labelColor=1e1c24&color=f3ee7a)](https://fishfolk.github.io/jumpy/book) [![License](https://img.shields.io/badge/License-MIT%20or%20Apache%202-green.svg?label=license&labelColor=1e1c24&color=34925e)](./LICENSE) [![Discord](https://img.shields.io/badge/chat-on%20discord-green.svg?logo=discord&logoColor=fff&labelColor=1e1c24&color=8d5b3f)](https://discord.gg/4smxjcheE5)
+Đây là bản fork của **Fish Folk: Jumpy** (game bắn súng 2D chiến thuật của đội Fish Folk), được đưa lên trình duyệt để chơi ngay không cần cài đặt:
 
-![Fish Folk: Jumpy Preview](https://user-images.githubusercontent.com/24392180/151969075-399e9fea-e2de-4340-96a4-0a0e5b79c281.gif)
+- **Chơi trực tuyến** qua server ghép trận riêng (WebSocket relay) — không còn mục chơi tại chỗ, vào game là tìm trận online.
+- **Tự đấu với máy (bot)** nếu chờ quá 30 giây mà không có người chơi nào khác.
+- **Giao diện tiếng Việt** toàn bộ (dịch từ bản tiếng Anh gốc).
+- **Hỗ trợ điện thoại**: joystick vuốt để di chuyển, nút cảm ứng để bắn/nhảy/nhặt/trượt.
 
-👉 **[Live on Kickstarter!](https://www.kickstarter.com/projects/erlendsh/fish-folk)** 👈
+## Chơi ngay
 
-## Introduction
+Mở link: **https://thantaigocua1515-cmd.github.io/jumpy-web/**
 
-Fish Folk: Jumpy is a tactical 2D shooter, played by up to 4 players online or on a shared screen. Aim either left or right; the rest is up to clever movement and positioning in this fish-on-fish brawler! For more information about our origin story (Duck Game et.al.) and big-picture plans, see our [design document](https://www.notion.so/erlendsh/Fish-Fight-1647ed74217e4e38a59bd28f4f5bc81a).
+Lần đầu tải khoảng 39MB nên hơi lâu; các lần sau sẽ nhanh hơn nhiều nhờ bộ nhớ đệm. Vào game → **Chơi Trực Tuyến** → **Tìm Trận**.
 
-## Web Demo
+## Cách chơi
 
-Jumpy runs in the browser! You can play [web demo][web_demo] to try out the game, without needing to install anything on your computer.
+Hai đến bốn người chơi đấu trong một đấu trường nhỏ: di chuyển, nhảy và ngắm bắn chỉ theo hai hướng trái/phải — thắng thua nằm ở di chuyển khéo và chọn vị trí.
 
-We recommend using the Chrome browser or other derivatives for best performance, or if you have issues with other browsers.
+**Bàn phím (người chơi 1):**
 
-[web_demo]: https://fishfolk.github.io/jumpy/player/latest/
+| Phím | Hành động |
+| --- | --- |
+| W A S D | Di chuyển / ngắm |
+| Space | Nhảy |
+| C | Bắn |
+| V | Nhặt / thả vũ khí |
+| B | Trượt |
+| Esc | Tạm dừng |
+| Enter | Bắt đầu / xác nhận |
 
-### Key Features (WIP)
+**Điện thoại (màn hình cảm ứng):**
 
-- 2 to 4 players in either Local Multiplayer or Online Play
-- Easy to pick up, emphasizing strategy over twitch reaction
-- Customize characters with hats, saved to your cross-platform profile
-- Create & explore user-made weapons, levels, audio and other scripted extensions
-- Smart level creation tools
-- Tournaments & matchmaking built in
+- Vuốt ở nửa trái màn hình để di chuyển/ngắm; hất nhanh lên trên để nhảy.
+- Các nút BẮN / NHẢY / NHẶT / TRƯỢT ở bên phải.
+- Chạm nhẹ vẫn bấm được các nút trong menu như bình thường.
+- Nút 🎮 ở góc phải trên để bật/tắt nút cảm ứng, nút ⛶ để toàn màn hình. Nên xoay ngang máy khi chơi.
 
-## Community
+**Luồng một trận đấu:** Tìm Trận → (ghép được người thật hoặc hết 30 giây thì đấu bot) → chọn cá và mũ → sẵn sàng → người tạo trận chọn map → đấu.
 
-### Contributing
+## Server online
 
-Anyone involved in the Fish Folk community must follow our [code of conduct](https://github.com/fishfolk/jumpy/blob/main/CODE_OF_CONDUCT.md).
+- Server ghép trận đang chạy trên Railway: `https://jumpy-production.up.railway.app` (WebSocket: `wss://jumpy-production.up.railway.app/ws`).
+- Mã nguồn server nằm trong thư mục [`server/`](./server) của repo này; xem thêm [`docs/MULTIPLAYER_WEB.md`](./docs/MULTIPLAYER_WEB.md) để biết giao thức và cách tích hợp.
+- Muốn dùng server riêng: deploy thư mục `server/` lên bất kỳ dịch vụ chạy Node.js nào (Railway, Render, VPS...), rồi mở game kèm tham số `?relay=wss://địa-chỉ-server-của-bạn/ws`.
 
-If you'd like to make something for Fish Folk, check out our [help-wanted](https://github.com/fishfolk/jumpy/labels/help%20wanted) issues or just ask us on [Discord](https://discord.gg/4smxjcheE5). We'll soon post an updated roadmap for the next month or two of work ahead.
+## Chạy từ mã nguồn
 
-Before committing and opening a PR, please run the following commands and follow their instructions:
+Yêu cầu: [Rust](https://rustup.rs/) (đúng phiên bản trong `rust-toolchain`).
 
-1. `cargo clippy -- -W clippy::correctness -D warnings`
-2. `cargo fmt`
+- **Bản native (máy tính):** `cargo run`
+- **Bản web:** cần thêm target `wasm32-unknown-unknown` và `wasm-opt` (binaryen) trong PATH, sau đó chạy `./scripts/build-web.sh release`. Kết quả nằm ở `web-target/wasm-release/` — chỉ là file tĩnh, host ở đâu cũng được (GitHub Pages, Vercel, Cloudflare Pages...).
+- Repo này dùng một bản vá của thư viện [bones](https://github.com/fishfolk/bones) (fork riêng, nhánh `jumpy-web`) để thêm transport WebSocket cho bản web và ưu tiên locale tiếng Việt; `Cargo.toml` đã trỏ sẵn vào fork đó, không cần chỉnh tay.
 
-### Development Build Profiles
+## Bản quyền
 
-By default, Jumpy will build without optimizations for the `jumpy_core` and `jumpy` crates. This helps reduce re-compile times at the expense of some runtime performance. If you need increased runtime performance during development, you can build with the `--profile dev-optimized` option, to optimize all of the crates:
+'Fish Folk: Jumpy' source code is dual-licensed under either
 
-```bash
-cargo r --profile dev-optimized
-```
+* MIT License (licenses/LICENSE-MIT or http://opensource.org/licenses/MIT)
+* Apache License, Version 2.0 (licenses/LICENSE-APACHE or http://www.apache.org/licenses/LICENSE-2.0)
 
-### Learning Materials
+at your option.
 
-#### Rust
+Fish Folk media assets are Copyright (c) 2020-2024 The Fish Folk Game & Spicy Lobster Developers and licensed as [CC BY-NC](https://creativecommons.org/licenses/by-nc/4.0/).
 
-- [Rusty Engine Tutorial](https://cleancut.github.io/rusty_engine/)
-- [Rust sokoban](https://sokoban.iolivia.me/)
-- <https://pragprog.com/titles/hwrust/hands-on-rust/>
-
-#### Bevy
-
-- [Unofficial Bevy Cheat Book](https://bevy-cheatbook.github.io/)
-
-## Download & play
-
-1. Download the latest version from the [releases](https://github.com/fishfolk/jumpy/releases) page.
-2. Extract the archive and run the executable. (e.g. `./jumpy` or `jumpy.exe`)
-
-### Launcher
-
-[A cross-platform launcher](https://github.com/spicylobstergames/SpicyLauncher) is also available for downloading and launching the game easily.
-
-### Distro Packages
-
-#### Arch Linux
-
-```sh
-pacman -S jumpy
-```
-
-## Building
-
-1. Install Rust with [rustup.rs](https://rustup.rs/)
-2. Clone this repository: `git clone https://github.com/fishfolk/jumpy.git`
-3. `cd jumpy`
-4. `cargo run`
+Font VT323 dùng cho chữ tiếng Việt trong game được cấp phép theo SIL Open Font License 1.1 (xem `assets/ui/VT323-LICENSE.txt`).
 
 ## Credits
 
 - [Fish Folk: Jumpy Credits](./CREDITS.md)
 - Input Icons: [Kadith's Icons](https://kadith.itch.io/kadiths-free-icons) by Kadith
+
+Bản fork này (bản web, chơi online qua WebSocket, vỏ cảm ứng cho điện thoại, bản dịch tiếng Việt) do [thantaigocua1515-cmd](https://github.com/thantaigocua1515-cmd) thực hiện trên nền game gốc của Fish Folk.
