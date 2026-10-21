@@ -14,6 +14,7 @@
         margin: 0;
         height: 100vh;
         height: 100dvh;
+        height: calc(var(--vvh, 1vh) * 100);
         background-color: black;
         user-select: none;
         -webkit-user-select: none;
@@ -27,6 +28,9 @@
       canvas {
         background-color: black;
         display: block;
+        width: 100vw !important;
+        height: calc(var(--vvh, 1vh) * 100) !important;
+        object-fit: contain;
       }
     </style>
     <!-- Nifty spinner from: https://github.com/loadingio/css-spinner/blob/088defa790d015e9c7df664d426374952e65124a/dist/dual-ring.html#L1 -->
@@ -167,9 +171,70 @@
       @media (orientation: portrait) {
         #rotate-hint.show { display: block; }
       }
+
+      /* ---------- Swipe joystick zone ---------- */
+      #joy-zone {
+        position: absolute;
+        left: 0; bottom: 0;
+        width: 46%; height: 64%;
+        pointer-events: auto;
+        touch-action: none;
+      }
+      #joy-base {
+        position: absolute;
+        width: 112px; height: 112px;
+        margin: -56px 0 0 -56px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(255,255,255,0.35);
+        background: rgba(10, 25, 40, 0.30);
+        display: none;
+      }
+      #joy-nub {
+        position: absolute;
+        left: 50%; top: 50%;
+        width: 52px; height: 52px;
+        margin: -26px 0 0 -26px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.35);
+        border: 1.5px solid rgba(255,255,255,0.5);
+      }
+      #joy-hint {
+        position: absolute;
+        left: calc(14px + env(safe-area-inset-left));
+        bottom: calc(16px + env(safe-area-inset-bottom));
+        color: rgba(255,255,255,0.6);
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        background: rgba(10, 25, 40, 0.35);
+        padding: 6px 10px;
+        border-radius: 999px;
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
+    <script>
+      // Keep the game canvas fitted to the *visible* viewport on mobile
+      // (handles browser URL bar show/hide + rotation): expose the visible
+      // height as --vvh and nudge the game to resize along with it.
+      (function () {
+        function fit() {
+          var vv = window.visualViewport;
+          var h = vv ? vv.height : window.innerHeight;
+          document.documentElement.style.setProperty('--vvh', (h / 100) + 'px');
+        }
+        fit();
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener('resize', function () {
+            fit();
+            window.dispatchEvent(new Event('resize'));
+          });
+        }
+        window.addEventListener('orientationchange', function () {
+          setTimeout(function () { fit(); window.dispatchEvent(new Event('resize')); }, 300);
+        });
+      })();
+    </script>
     <div class="loading-container">
       <div>
         <div class="lds-dual-ring"></div>
@@ -194,15 +259,9 @@
         <div class="pad-btn small" data-key="Escape" data-code="Escape">⏸<small>PAUSE</small></div>
         <div class="pad-btn small" data-key="Enter" data-code="Enter">⏵<small>START</small></div>
       </div>
-      <div class="pad-cluster pad-left">
-        <div class="pad-col">
-          <div class="pad-btn" data-key="w" data-code="KeyW">▲<small>NGẮM</small></div>
-          <div class="pad-row">
-            <div class="pad-btn" data-key="a" data-code="KeyA">◀</div>
-            <div class="pad-btn" data-key="s" data-code="KeyS">▼</div>
-            <div class="pad-btn" data-key="d" data-code="KeyD">▶</div>
-          </div>
-        </div>
+      <div id="joy-zone">
+        <div id="joy-base"><div id="joy-nub"></div></div>
+        <div id="joy-hint">✥ VUỐT ĐỂ DI CHUYỂN · HẤT LÊN = NHẢY</div>
       </div>
       <div class="pad-cluster pad-right">
         <div class="pad-col">
@@ -302,7 +361,7 @@
       })();
     </script>
     <script>
-      // ---------- Touch gamepad: dispatch synthetic keyboard events to the game canvas ----------
+      // ---------- Touch controls: swipe joystick (movement) + buttons (actions) ----------
       (function () {
         var pads = document.getElementById('pads');
         var hint = document.getElementById('rotate-hint');
@@ -324,46 +383,112 @@
         document.getElementById('btn-full').addEventListener('click', function () {
           try {
             if (document.fullscreenElement) document.exitFullscreen();
-            else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(function(){ document.documentElement.requestFullscreen(); });
+            else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(function () { document.documentElement.requestFullscreen(); });
           } catch (e) {}
         });
 
-        function target() {
-          return document.querySelector('canvas') || document.body;
-        }
-        function send(type, btn) {
-          var key = btn.getAttribute('data-key');
-          var code = btn.getAttribute('data-code');
-          var ev = new KeyboardEvent(type, {
-            key: key, code: code, bubbles: true, cancelable: true, composed: true,
-          });
-          // Some engines read keyCode/which; define them too.
-          try {
-            Object.defineProperty(ev, 'keyCode', { get: function () { return btn._kc || 0; } });
-            Object.defineProperty(ev, 'which', { get: function () { return btn._kc || 0; } });
-          } catch (e) {}
-          target().dispatchEvent(ev);
-        }
+        // --- Synthetic keyboard state manager ---
+        // Player 1 defaults (assets/game.yaml): WASD move, Space jump, C shoot,
+        // V grab, B slide, Esc pause, Enter start/confirm.
         var KEYCODES = { KeyW: 87, KeyA: 65, KeyS: 83, KeyD: 68, KeyC: 67, KeyV: 86, KeyB: 66, Space: 32, Escape: 27, Enter: 13 };
+        var KEYVALS = { KeyW: 'w', KeyA: 'a', KeyS: 's', KeyD: 'd', KeyC: 'c', KeyV: 'v', KeyB: 'b', Space: ' ', Escape: 'Escape', Enter: 'Enter' };
+        var held = {};
+        function eventTarget() { return document.querySelector('canvas') || document.body; }
+        function dispatchKey(type, code) {
+          var ev = new KeyboardEvent(type, { key: KEYVALS[code], code: code, bubbles: true, cancelable: true, composed: true });
+          try {
+            Object.defineProperty(ev, 'keyCode', { get: function () { return KEYCODES[code] || 0; } });
+            Object.defineProperty(ev, 'which', { get: function () { return KEYCODES[code] || 0; } });
+          } catch (e) {}
+          eventTarget().dispatchEvent(ev);
+        }
+        function setKey(code, down) {
+          if (!!held[code] === down) return;
+          held[code] = down;
+          dispatchKey(down ? 'keydown' : 'keyup', code);
+        }
+        function tapKey(code) {
+          setKey(code, true);
+          setTimeout(function () { setKey(code, false); }, 120);
+        }
+
+        // --- Action buttons (right cluster + pause/start) ---
         document.querySelectorAll('.pad-btn').forEach(function (btn) {
-          btn._kc = KEYCODES[btn.getAttribute('data-code')] || 0;
+          var code = btn.getAttribute('data-code');
           btn.addEventListener('pointerdown', function (e) {
             e.preventDefault();
-            btn.setPointerCapture && e.pointerId !== undefined && btn.setPointerCapture(e.pointerId);
+            try { btn.setPointerCapture(e.pointerId); } catch (err) {}
             btn.classList.add('pressed');
-            send('keydown', btn);
+            setKey(code, true);
           });
-          function release(e) {
+          function release() {
             if (!btn.classList.contains('pressed')) return;
             btn.classList.remove('pressed');
-            send('keyup', btn);
+            setKey(code, false);
           }
           btn.addEventListener('pointerup', release);
           btn.addEventListener('pointercancel', release);
           btn.addEventListener('lostpointercapture', release);
           btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
         });
-        // Stop double-tap zoom / scroll gestures on the pads & toolbar.
+
+        // --- Swipe joystick for movement (left zone) ---
+        // Drag in any direction: horizontal = walk, up = aim up, down = crouch.
+        // A quick flick up also triggers a jump tap.
+        var DEAD = 13, RADIUS = 48;
+        function dirKeys(dx, dy) {
+          return { KeyA: dx < -DEAD, KeyD: dx > DEAD, KeyW: dy < -DEAD, KeyS: dy > DEAD };
+        }
+        window.__joyDirKeys = dirKeys; // exposed for automated tests
+
+        var zone = document.getElementById('joy-zone');
+        var base = document.getElementById('joy-base');
+        var nub = document.getElementById('joy-nub');
+        var joyId = null, ox = 0, oy = 0, startT = 0, lastDx = 0, lastDy = 0;
+
+        function joyMove(e) {
+          var dx = e.clientX - ox, dy = e.clientY - oy;
+          lastDx = dx; lastDy = dy;
+          var k = dirKeys(dx, dy);
+          for (var code in k) setKey(code, k[code]);
+          var len = Math.sqrt(dx * dx + dy * dy);
+          var cl = Math.min(len, RADIUS);
+          var a = Math.atan2(dy, dx);
+          nub.style.transform = 'translate(' + (Math.cos(a) * cl) + 'px,' + (Math.sin(a) * cl) + 'px)';
+        }
+        function joyEnd() {
+          if (joyId === null) return;
+          var dt = performance.now() - startT;
+          var flickUp = dt < 260 && lastDy < -52;
+          joyId = null;
+          base.style.display = 'none';
+          nub.style.transform = 'translate(0px,0px)';
+          setKey('KeyA', false); setKey('KeyD', false); setKey('KeyW', false); setKey('KeyS', false);
+          if (flickUp) tapKey('Space');
+        }
+        zone.addEventListener('pointerdown', function (e) {
+          if (joyId !== null) return;
+          e.preventDefault();
+          joyId = e.pointerId;
+          ox = e.clientX; oy = e.clientY;
+          startT = performance.now();
+          lastDx = 0; lastDy = 0;
+          try { zone.setPointerCapture(e.pointerId); } catch (err) {}
+          base.style.left = ox + 'px';
+          base.style.top = oy + 'px';
+          base.style.display = 'block';
+          joyMove(e);
+        });
+        zone.addEventListener('pointermove', function (e) {
+          if (e.pointerId !== joyId) return;
+          joyMove(e);
+        });
+        zone.addEventListener('pointerup', function (e) { if (e.pointerId === joyId) joyEnd(); });
+        zone.addEventListener('pointercancel', function (e) { if (e.pointerId === joyId) joyEnd(); });
+        zone.addEventListener('lostpointercapture', function () { joyEnd(); });
+        zone.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+        // Stop double-tap zoom / scroll gestures on the controls.
         ['touchstart', 'touchmove'].forEach(function (t) {
           document.addEventListener(t, function (e) {
             if (e.target.closest && (e.target.closest('#pads') || e.target.closest('#toolbar'))) e.preventDefault();
