@@ -1,18 +1,35 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#001e36" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./assets/player/skins/fishy/fishy-body.png" />
+    <title>Fish Folk: Jumpy — Mobile</title>
     <style>
       body {
         margin: 0;
         height: 100vh;
+        height: 100dvh;
         background-color: black;
         user-select: none;
+        -webkit-user-select: none;
+        overflow: hidden;
+        position: fixed;
+        inset: 0;
+        touch-action: none;
+        overscroll-behavior: none;
+        font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
       }
       canvas {
         background-color: black;
+        display: block;
       }
     </style>
-    <!-- Nifty spinner from: https://github.com/loadingio/css-spinner/blob/088aefa790d015e9c7df664d426374952e65124a/dist/dual-ring.html#L1 -->
+    <!-- Nifty spinner from: https://github.com/loadingio/css-spinner/blob/088defa790d015e9c7df664d426374952e65124a/dist/dual-ring.html#L1 -->
     <style type="text/css">
       .lds-dual-ring {
         width: 80px;
@@ -29,37 +46,126 @@
         animation: lds-dual-ring 1.2s linear infinite;
       }
       @keyframes lds-dual-ring {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
       .loading-container {
-        z-index: -1;
+        z-index: 5;
         display: flex;
         flex-direction: column;
         position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        right: 0;
+        top: 0; bottom: 0; left: 0; right: 0;
         color: white;
+        pointer-events: none;
       }
-
       .loading-container > div {
         margin: auto;
         display: flex;
         flex-direction: column;
         color: white;
         align-items: center;
+        padding: 0 16px;
+        text-align: center;
       }
+      .loading-text { margin-top: 2em; font-size: 1.2em; }
+      .loading-progress {
+        margin-top: 14px;
+        width: min(320px, 70vw);
+        height: 8px;
+        border-radius: 4px;
+        background: rgba(255,255,255,0.18);
+        overflow: hidden;
+      }
+      .loading-progress > div {
+        height: 100%;
+        width: 0%;
+        background: #3ec761;
+        transition: width 0.2s ease;
+      }
+      .loading-pct { margin-top: 8px; font-size: 0.95em; color: #bfe3ff; min-height: 1.2em; }
+      .loading-tip { margin-top: 10px; font-size: 0.85em; color: #8fa9bd; }
+    </style>
+    <style>
+      /* ---------- On-screen touch gamepad ---------- */
+      #toolbar {
+        position: fixed;
+        top: calc(8px + env(safe-area-inset-top));
+        right: calc(8px + env(safe-area-inset-right));
+        z-index: 30;
+        display: flex;
+        gap: 8px;
+      }
+      #toolbar button {
+        width: 42px; height: 42px;
+        border-radius: 50%;
+        border: 1px solid rgba(255,255,255,0.35);
+        background: rgba(10, 25, 40, 0.55);
+        color: #fff;
+        font-size: 19px;
+        line-height: 1;
+        padding: 0;
+        touch-action: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      #toolbar button:active { background: rgba(62,199,97,0.5); }
 
-      .loading-text {
-        font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
-        margin-top: 2em;
-        font-size: 1.2em;
+      #pads {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        pointer-events: none;
+        display: none;
+      }
+      #pads.on { display: block; }
+      .pad-cluster { position: absolute; bottom: calc(14px + env(safe-area-inset-bottom)); display: flex; gap: 10px; align-items: flex-end; }
+      .pad-left { left: calc(12px + env(safe-area-inset-left)); }
+      .pad-right { right: calc(12px + env(safe-area-inset-right)); }
+      .pad-col { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+      .pad-row { display: flex; gap: 10px; }
+      .pad-btn {
+        pointer-events: auto;
+        width: 60px; height: 60px;
+        border-radius: 50%;
+        border: 1.5px solid rgba(255,255,255,0.4);
+        background: rgba(10, 25, 40, 0.45);
+        color: #fff;
+        font-size: 22px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        touch-action: none;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+      .pad-btn small { font-size: 9px; letter-spacing: 0.4px; color: #bfe3ff; margin-top: 1px; }
+      .pad-btn.pressed { background: rgba(62,199,97,0.55); border-color: #3ec761; }
+      .pad-btn.big { width: 68px; height: 68px; font-size: 24px; }
+      .pad-btn.small { width: 46px; height: 46px; font-size: 16px; }
+      .pad-top {
+        position: absolute;
+        top: calc(8px + env(safe-area-inset-top));
+        left: calc(12px + env(safe-area-inset-left));
+        display: flex; gap: 10px;
+      }
+      #rotate-hint {
+        position: fixed;
+        left: 50%;
+        transform: translateX(-50%);
+        bottom: calc(120px + env(safe-area-inset-bottom));
+        z-index: 25;
+        background: rgba(10, 25, 40, 0.8);
+        color: #fff;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        display: none;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      @media (orientation: portrait) {
+        #rotate-hint.show { display: block; }
       }
     </style>
   </head>
@@ -68,31 +174,106 @@
       <div>
         <div class="lds-dual-ring"></div>
         <div class="loading-text">Loading game...</div>
+        <div class="loading-progress"><div id="load-bar"></div></div>
+        <div class="loading-pct" id="load-pct"></div>
+        <div class="loading-tip">Lần tải đầu hơi lâu — các lần sau sẽ nhanh hơn nhờ bộ nhớ đệm.</div>
       </div>
     </div>
+
+    <div id="toolbar">
+      <button id="btn-pads" title="Bật/tắt nút cảm ứng">🎮</button>
+      <button id="btn-full" title="Toàn màn hình">⛶</button>
+    </div>
+
+    <div id="rotate-hint">📱 Xoay ngang điện thoại để chơi thoải mái hơn</div>
+
+    <!-- Touch gamepad: maps to Player 1 keyboard defaults (assets/game.yaml):
+         move W/A/S/D, jump Space, shoot C, grab V, slide B, pause Esc, start Enter -->
+    <div id="pads">
+      <div class="pad-top">
+        <div class="pad-btn small" data-key="Escape" data-code="Escape">⏸<small>PAUSE</small></div>
+        <div class="pad-btn small" data-key="Enter" data-code="Enter">⏵<small>START</small></div>
+      </div>
+      <div class="pad-cluster pad-left">
+        <div class="pad-col">
+          <div class="pad-btn" data-key="w" data-code="KeyW">▲<small>NGẮM</small></div>
+          <div class="pad-row">
+            <div class="pad-btn" data-key="a" data-code="KeyA">◀</div>
+            <div class="pad-btn" data-key="s" data-code="KeyS">▼</div>
+            <div class="pad-btn" data-key="d" data-code="KeyD">▶</div>
+          </div>
+        </div>
+      </div>
+      <div class="pad-cluster pad-right">
+        <div class="pad-col">
+          <div class="pad-row">
+            <div class="pad-btn" data-key="v" data-code="KeyV">✋<small>NHẶT</small></div>
+            <div class="pad-btn" data-key="b" data-code="KeyB">➘<small>TRƯỢT</small></div>
+          </div>
+          <div class="pad-row">
+            <div class="pad-btn big" data-key="c" data-code="KeyC">🔫<small>BẮN</small></div>
+            <div class="pad-btn big" data-key=" " data-code="Space">⬆<small>NHẢY</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ---- Download progress for the WASM file (display only; game loading unchanged) ----
+      (function () {
+        var bar = document.getElementById('load-bar');
+        var pct = document.getElementById('load-pct');
+        function setProgress(frac) {
+          var p = Math.max(0, Math.min(100, Math.round(frac * 100)));
+          if (bar) bar.style.width = p + '%';
+          if (pct) pct.textContent = 'Đang tải game: ' + p + '%';
+        }
+        var origFetch = window.fetch.bind(window);
+        window.fetch = function () {
+          var args = arguments;
+          return origFetch.apply(null, args).then(function (resp) {
+            try {
+              var url = '';
+              if (typeof args[0] === 'string') url = args[0];
+              else if (args[0] && args[0].url) url = args[0].url;
+              var total = parseInt(resp.headers.get('content-length') || '0', 10);
+              if (url.indexOf('jumpy_bg.wasm') !== -1 && total > 0 && resp.body && resp.clone) {
+                var clone = resp.clone();
+                var reader = clone.body.getReader();
+                var got = 0;
+                (function pump() {
+                  reader.read().then(function (r) {
+                    if (r.done) { setProgress(1); return; }
+                    got += r.value.byteLength;
+                    setProgress(got / total);
+                    pump();
+                  }).catch(function () {});
+                })();
+              }
+            } catch (e) {}
+            return resp;
+          });
+        };
+        // Hide the loading overlay once the game canvas exists and has size.
+        var timer = setInterval(function () {
+          var c = document.querySelector('canvas');
+          if (c && c.width > 0) {
+            var lc = document.querySelector('.loading-container');
+            if (lc) lc.style.display = 'none';
+            clearInterval(timer);
+          }
+        }, 500);
+      })();
+    </script>
     <script>
       // Insert hack to make sound autoplay on Chrome as soon as the user interacts with the tab:
       // https://developers.google.com/web/updates/2018/11/web-audio-autoplay#moving-forward
       (function () {
-        // An array of all contexts to resume on the page
         const audioContextList = [];
-
-        // An array of various user interaction events we should listen for
         const userInputEventNames = [
-          "click",
-          "contextmenu",
-          "auxclick",
-          "dblclick",
-          "mousedown",
-          "mouseup",
-          "pointerup",
-          "touchend",
-          "keydown",
-          "keyup",
+          "click", "contextmenu", "auxclick", "dblclick", "mousedown", "mouseup",
+          "pointerup", "touchend", "keydown", "keyup",
         ];
-
-        // A proxy object to intercept AudioContexts and
-        // add them to the array for tracking and resuming later
         self.AudioContext = new Proxy(self.AudioContext, {
           construct(target, args) {
             const result = new target(...args);
@@ -100,35 +281,98 @@
             return result;
           },
         });
-
-        // To resume all AudioContexts being tracked
         function resumeAllContexts(event) {
           let count = 0;
-
           audioContextList.forEach((context) => {
-            if (context.state !== "running") {
-              context.resume();
-            } else {
-              count++;
-            }
+            if (context.state !== "running") { context.resume(); } else { count++; }
           });
-
-          // If all the AudioContexts have now resumed then we
-          // unbind all the event listeners from the page to prevent
-          // unnecessary resume attempts
           if (count && count == audioContextList.length) {
             userInputEventNames.forEach((eventName) => {
               document.removeEventListener(eventName, resumeAllContexts);
             });
           }
         }
-
-        // We bind the resume function for each user interaction
-        // event on the page
         userInputEventNames.forEach((eventName) => {
           document.addEventListener(eventName, resumeAllContexts);
         });
       })();
+    </script>
+    <script>
+      // ---------- Touch gamepad: dispatch synthetic keyboard events to the game canvas ----------
+      (function () {
+        var pads = document.getElementById('pads');
+        var hint = document.getElementById('rotate-hint');
+        var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        var forced = new URLSearchParams(location.search).get('pads');
+        var pref = localStorage.getItem('jumpy_pads');
+        var on = forced !== null ? forced === '1' : (pref !== null ? pref === '1' : isTouch);
+        function apply() {
+          pads.classList.toggle('on', on);
+          hint.classList.toggle('show', on);
+        }
+        apply();
+
+        document.getElementById('btn-pads').addEventListener('click', function () {
+          on = !on;
+          localStorage.setItem('jumpy_pads', on ? '1' : '0');
+          apply();
+        });
+        document.getElementById('btn-full').addEventListener('click', function () {
+          try {
+            if (document.fullscreenElement) document.exitFullscreen();
+            else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(function(){ document.documentElement.requestFullscreen(); });
+          } catch (e) {}
+        });
+
+        function target() {
+          return document.querySelector('canvas') || document.body;
+        }
+        function send(type, btn) {
+          var key = btn.getAttribute('data-key');
+          var code = btn.getAttribute('data-code');
+          var ev = new KeyboardEvent(type, {
+            key: key, code: code, bubbles: true, cancelable: true, composed: true,
+          });
+          // Some engines read keyCode/which; define them too.
+          try {
+            Object.defineProperty(ev, 'keyCode', { get: function () { return btn._kc || 0; } });
+            Object.defineProperty(ev, 'which', { get: function () { return btn._kc || 0; } });
+          } catch (e) {}
+          target().dispatchEvent(ev);
+        }
+        var KEYCODES = { KeyW: 87, KeyA: 65, KeyS: 83, KeyD: 68, KeyC: 67, KeyV: 86, KeyB: 66, Space: 32, Escape: 27, Enter: 13 };
+        document.querySelectorAll('.pad-btn').forEach(function (btn) {
+          btn._kc = KEYCODES[btn.getAttribute('data-code')] || 0;
+          btn.addEventListener('pointerdown', function (e) {
+            e.preventDefault();
+            btn.setPointerCapture && e.pointerId !== undefined && btn.setPointerCapture(e.pointerId);
+            btn.classList.add('pressed');
+            send('keydown', btn);
+          });
+          function release(e) {
+            if (!btn.classList.contains('pressed')) return;
+            btn.classList.remove('pressed');
+            send('keyup', btn);
+          }
+          btn.addEventListener('pointerup', release);
+          btn.addEventListener('pointercancel', release);
+          btn.addEventListener('lostpointercapture', release);
+          btn.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+        });
+        // Stop double-tap zoom / scroll gestures on the pads & toolbar.
+        ['touchstart', 'touchmove'].forEach(function (t) {
+          document.addEventListener(t, function (e) {
+            if (e.target.closest && (e.target.closest('#pads') || e.target.closest('#toolbar'))) e.preventDefault();
+          }, { passive: false });
+        });
+      })();
+    </script>
+    <script>
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('./sw.js').catch(function () {});
+        });
+      }
     </script>
     <script type="module">
       import init from "./jumpy.js";
@@ -136,9 +380,7 @@
       const ignoreCanvasContextMenu = () => {
         const canvases = document.getElementsByTagName('canvas');
         if (canvases[0]) {
-            canvases[0].oncontextmenu = (e) => {
-                e.preventDefault()
-            };
+            canvases[0].oncontextmenu = (e) => { e.preventDefault() }
         } else {
             setTimeout(ignoreCanvasContextMenu, 1000)
         }
