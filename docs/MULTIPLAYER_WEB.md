@@ -23,7 +23,10 @@ bước còn lại để bản web chơi online được, dùng server relay ở
 - `server/server.js`: relay + matchmaker WebSocket nói đúng luồng giao thức
   trên (accepted → success{seed, player_idx} → proxy 2 chiều →
   peer_disconnected), đã test tự động 2 client (`server/test-client.js`).
-- Client web sẽ trỏ tới `wss://<domain-railway>/ws`.
+- Server đã deploy tại Railway và kiểm chứng live bằng trình duyệt thật
+  (2026-10-21): health `GET /` trả `ok: true`; 2 client WebSocket ghép cặp
+  cùng seed và chuyển gói thành công.
+- Client web sẽ trỏ tới `wss://jumpy-production.up.railway.app/ws`.
 
 ## Các bước còn lại phía client (giai đoạn tiếp theo)
 
