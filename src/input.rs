@@ -437,7 +437,6 @@ impl PlayerInputCollector {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl DenseControl<DensePlayerControl> for PlayerControl {
     fn get_dense_input(&self) -> DensePlayerControl {
         let mut dense_control = DensePlayerControl::default();
@@ -474,7 +473,6 @@ impl DenseControl<DensePlayerControl> for PlayerControl {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 bitfield::bitfield! {
     /// A player's controller inputs densely packed into a single u32.
     ///
@@ -491,7 +489,6 @@ bitfield::bitfield! {
     pub from into proto::DenseMoveDirection, move_direction, set_move_direction: 16, 5;
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 impl Default for DensePlayerControl {
     fn default() -> Self {
         let mut control = Self(0);
@@ -500,11 +497,9 @@ impl Default for DensePlayerControl {
     }
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 /// Used to implement input type config for bones networking.
 pub struct NetworkInputConfig;
 
-#[cfg(not(target_arch = "wasm32"))]
 impl<'a> DenseInputConfig<'a> for NetworkInputConfig {
     type Dense = DensePlayerControl;
     type Control = PlayerControl;
