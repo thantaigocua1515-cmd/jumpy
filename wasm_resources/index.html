@@ -153,23 +153,27 @@
         left: calc(12px + env(safe-area-inset-left));
         display: flex; gap: 10px;
       }
-      #rotate-hint {
+      #rotate-blocker {
         position: fixed;
-        left: 50%;
-        transform: translateX(-50%);
-        bottom: calc(120px + env(safe-area-inset-bottom));
-        z-index: 25;
-        background: rgba(10, 25, 40, 0.8);
-        color: #fff;
-        padding: 8px 14px;
-        border-radius: 999px;
-        font-size: 13px;
+        inset: 0;
+        z-index: 60;
         display: none;
-        pointer-events: none;
-        white-space: nowrap;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        background: #0b2239;
+        color: #fff;
+        text-align: center;
+        padding: 24px;
       }
+      #rotate-blocker .rb-icon { font-size: 54px; animation: rb-tilt 1.6s ease-in-out infinite; }
+      #rotate-blocker .rb-title { font-size: 20px; font-weight: 700; }
+      #rotate-blocker .rb-sub { font-size: 14px; opacity: 0.8; max-width: 300px; line-height: 1.5; }
+      @keyframes rb-tilt { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(90deg); } }
       @media (orientation: portrait) {
-        #rotate-hint.show { display: block; }
+        #rotate-blocker.show { display: flex; }
+        #pads { display: none !important; }
       }
 
       /* ---------- Swipe joystick zone ---------- */
@@ -250,7 +254,11 @@
       <button id="btn-full" title="Toàn màn hình">⛶</button>
     </div>
 
-    <div id="rotate-hint">📱 Xoay ngang điện thoại để chơi thoải mái hơn</div>
+    <div id="rotate-blocker">
+      <div class="rb-icon">📱</div>
+      <div class="rb-title">Xoay ngang điện thoại để chơi</div>
+      <div class="rb-sub">Game hiển thị và điều khiển tốt nhất ở màn hình ngang. Xoay máy lại là chơi tiếp ngay, không mất tiến trình đâu.</div>
+    </div>
 
     <!-- Touch gamepad: maps to Player 1 keyboard defaults (assets/game.yaml):
          move W/A/S/D, jump Space, shoot C, grab V, slide B, pause Esc, start Enter -->
@@ -364,7 +372,7 @@
       // ---------- Touch controls: swipe joystick (movement) + buttons (actions) ----------
       (function () {
         var pads = document.getElementById('pads');
-        var hint = document.getElementById('rotate-hint');
+        var hint = document.getElementById('rotate-blocker');
         var isTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         var forced = new URLSearchParams(location.search).get('pads');
         var pref = localStorage.getItem('jumpy_pads');
@@ -383,6 +391,7 @@
         document.getElementById('btn-full').addEventListener('click', function () {
           try {
             if (document.fullscreenElement) document.exitFullscreen();
+            else if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {});
             else document.documentElement.requestFullscreen({ navigationUI: 'hide' }).catch(function () { document.documentElement.requestFullscreen(); });
           } catch (e) {}
         });
@@ -514,10 +523,38 @@
       })();
     </script>
     <script>
+      // Build id of this shell. version.txt on the server carries the id of
+      // the newest deployed build; if they differ, this page is stale
+      // (an old service worker served it) -> wipe caches and reload once.
+      var BUILD_ID = 'v7-vi2';
       if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        var swReloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (swReloading) return;
+          swReloading = true;
+          location.reload();
+        });
         window.addEventListener('load', function () {
           navigator.serviceWorker.register('./sw.js').catch(function () {});
         });
+        try {
+          if (!sessionStorage.getItem('jumpy_healed')) {
+            fetch('./version.txt', { cache: 'no-store' }).then(function (r) {
+              if (!r.ok) return null;
+              return r.text();
+            }).then(function (t) {
+              if (!t) return;
+              var v = t.trim();
+              if (v && v.length < 40 && v !== BUILD_ID) {
+                sessionStorage.setItem('jumpy_healed', '1');
+                var jobs = [];
+                if (window.caches) jobs.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+                jobs.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+                Promise.all(jobs).then(function () { location.reload(); });
+              }
+            }).catch(function () {});
+          }
+        } catch (e) {}
       }
     </script>
     <script type="module">
