@@ -235,6 +235,7 @@
             try {
               var url = '';
               if (typeof args[0] === 'string') url = args[0];
+              else if (typeof URL !== 'undefined' && args[0] instanceof URL) url = args[0].href;
               else if (args[0] && args[0].url) url = args[0].url;
               var total = parseInt(resp.headers.get('content-length') || '0', 10);
               if (url.indexOf('jumpy_bg.wasm') !== -1 && total > 0 && resp.body && resp.clone) {
