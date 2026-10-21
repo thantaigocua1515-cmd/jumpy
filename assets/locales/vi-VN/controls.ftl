@@ -1,0 +1,16 @@
+move-up = Đi Lên
+move-down = Đi Xuống
+move-left = Sang Trái
+move-right = Sang Phải
+move-up-alt = Đi Lên (Phụ)
+move-down-alt = Đi Xuống (Phụ)
+move-left-alt = Sang Trái (Phụ)
+move-right-alt = Sang Phải (Phụ)
+jump = Nhảy
+grab-drop = Nhặt / Thả
+shoot = Bắn
+slide = Trượt
+ragdoll = Thả Lỏng
+menu-confirm = Phím Xác Nhận
+menu-back = Phím Quay Lại
+menu-start = Phím Bắt Đầu
