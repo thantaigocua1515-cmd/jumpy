@@ -48,9 +48,17 @@ Kiểm tra sống: `GET /` trả JSON `{ service: "jumpy-relay", ok: true, ... }
 Chi phí: server rất nhẹ (chỉ chuyển tiếp gói nhỏ), gói Hobby của Railway đủ
 cho giai đoạn thử nghiệm 2 người chơi.
 
+## Địa chỉ server đang chạy
+
+- Health check: https://jumpy-production.up.railway.app/ → `{"service":"jumpy-relay","ok":true,...}`
+- WebSocket cho client: `wss://jumpy-production.up.railway.app/ws`
+- Đã kiểm chứng trực tiếp trên internet bằng trình duyệt thật (2026-10-21):
+  2 client kết nối, ghép cặp cùng seed, chuyển gói A→B thành công.
+
 ## Trạng thái tích hợp
 
 - [x] Server relay/matchmaker (repo này, đã test local 2 client)
+- [x] Deploy Railway + verify live qua trình duyệt
 - [ ] Client web: viết `NetworkSocket` trên WebSocket cho target wasm32 và mở
       lại mục Online trên bản web — xem `docs/MULTIPLAYER_WEB.md` ở thư mục
       gốc của repo để biết kế hoạch chi tiết từng bước.
