@@ -1,6 +1,6 @@
 // Jumpy web cache — cache-first for the game files so repeat visits load fast.
 // Bump CACHE_VERSION whenever jumpy.js / jumpy_bg.wasm change.
-const CACHE_VERSION = 'jumpy-cache-v5-mobile3';
+const CACHE_VERSION = 'jumpy-cache-v6-mobile4';
 const CORE = ['./', './index.html', './jumpy.js', './jumpy_bg.wasm', './manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
