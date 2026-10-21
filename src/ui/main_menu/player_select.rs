@@ -1,4 +1,3 @@
-#[cfg(not(target_arch = "wasm32"))]
 use bones_framework::networking::{NetworkMatchSocket, SocketTarget};
 use smallvec::SmallVec;
 
@@ -55,6 +54,14 @@ impl PlayerSelectState {
             }
         }
     }
+}
+
+/// Set by the network menu when online matchmaking times out: the player
+/// select screen should pre-fill this many slots with AI players (bots), so
+/// the player can start a local match against the computer instead.
+#[derive(Default, Clone, Copy, Debug)]
+pub struct BotFillRequest {
+    pub bots: u32,
 }
 
 #[derive(Default, Clone, Copy, Debug)]
@@ -274,7 +281,7 @@ pub fn widget(
     controls: Res<GlobalPlayerControls>,
     world: &World,
     asset_server: Res<AssetServer>,
-    #[cfg(not(target_arch = "wasm32"))] network_socket: Option<Res<NetworkMatchSocket>>,
+    network_socket: Option<Res<NetworkMatchSocket>>,
 ) {
     let mut state = ui.ctx().get_state::<PlayerSelectState>();
     ui.ctx().set_state(EguiInputSettings {
@@ -282,7 +289,6 @@ pub fn widget(
         disable_gamepad_input: true,
     });
 
-    #[cfg(not(target_arch = "wasm32"))]
     if let Some(socket) = network_socket.as_ref() {
         handle_match_setup_messages(socket, &mut state, &asset_server);
     }
@@ -341,16 +347,32 @@ pub fn widget(
     // transition to map select. Transition slots of required players from empty to initial state.
     //
     // In Offline, we have one required player. Other slots are optional.
-    #[cfg(target_arch = "wasm32")]
-    {
+    // Offline (local or bot match), the first slot belongs to the local player.
+    if network_socket.is_none() {
         let first_slot = &mut state.slots[0];
         if first_slot.is_empty() {
             *first_slot = PlayerSlot::SelectingLocalControlSource;
         }
+
+        // If the network menu asked for a bot match (matchmaking timed out),
+        // pre-fill slots with ready AI players.
+        let fill = ui.ctx().get_state::<BotFillRequest>();
+        if fill.bots > 0 {
+            ui.ctx().set_state(BotFillRequest::default());
+            for i in 1..=(fill.bots as usize) {
+                if i < state.slots.len() && state.slots[i].is_empty() && !state.players.is_empty()
+                {
+                    state.slots[i] = PlayerSlot::Ready {
+                        control_source: PlayerSlotControlSource::Ai,
+                        selected_player: state.players[i % state.players.len()],
+                        selected_hat: None,
+                    };
+                }
+            }
+        }
     }
 
     // In Online, we have one local player, and some number of remotes that must be initialized.
-    #[cfg(not(target_arch = "wasm32"))]
     if let Some(socket) = network_socket.as_ref() {
         for (slot_id, slot) in state.slots.iter_mut().enumerate() {
             let is_local_player_slot = slot_id == socket.player_idx() as usize;
@@ -389,7 +411,6 @@ pub fn widget(
     }
     let may_continue = ready_players >= 1 && unconfirmed_players == 0 && at_least_one_non_ai_ready;
 
-    #[cfg(not(target_arch = "wasm32"))]
     if let Some(socket) = network_socket.as_ref() {
         if may_continue {
             // The first player picks the map
@@ -414,9 +435,6 @@ pub fn widget(
     ui.vertical_centered(|ui| {
         ui.add_space(heading_text_style.size / 4.0);
 
-        #[cfg(target_arch = "wasm32")]
-        let is_network = false;
-        #[cfg(not(target_arch = "wasm32"))]
         let is_network = network_socket.is_some();
 
         // Title
@@ -456,7 +474,6 @@ pub fn widget(
                     ui.ctx().set_state(EguiInputSettings::default());
                     ui.ctx().set_state(PlayerSelectState::default());
 
-                    #[cfg(not(target_arch = "wasm32"))]
                     if let Some(socket) = network_socket {
                         socket.close();
                     }
@@ -506,7 +523,6 @@ pub fn widget(
     ui.ctx().set_state(state);
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 fn handle_match_setup_messages(
     network_socket: &NetworkMatchSocket,
     player_select_state: &mut PlayerSelectState,
@@ -584,15 +600,13 @@ fn player_select_panel(
     localization: Localization<GameMeta>,
     mapping: Res<PlayerControlMapping>,
     world: &World,
-    #[cfg(not(target_arch = "wasm32"))] network_socket: Option<Res<NetworkMatchSocket>>,
+    network_socket: Option<Res<NetworkMatchSocket>>,
 ) {
     let (ui, slot_id, state) = &mut *params;
     let slot_id = *slot_id;
 
-    #[cfg(not(target_arch = "wasm32"))]
     let network_socket = network_socket.as_deref();
 
-    #[cfg(not(target_arch = "wasm32"))]
     if let Some(socket) = network_socket {
         // Don't show panels for non-connected players.
         if slot_id + 1 > socket.player_count() {
@@ -600,9 +614,6 @@ fn player_select_panel(
         }
     }
 
-    #[cfg(target_arch = "wasm32")]
-    let is_network = false;
-    #[cfg(not(target_arch = "wasm32"))]
     let is_network = network_socket.is_some();
 
     let is_next_open_slot = state
@@ -611,9 +622,6 @@ fn player_select_panel(
         .enumerate()
         .any(|(i, slot)| slot.control_source().is_none() && i == slot_id as usize);
 
-    #[cfg(target_arch = "wasm32")]
-    let (network_local_player_slot, slot_allows_new_player) = (None::<u32>, is_next_open_slot);
-    #[cfg(not(target_arch = "wasm32"))]
     let (network_local_player_slot, slot_allows_new_player) = match network_socket {
         Some(socket) => {
             let socket_id = socket.player_idx();
@@ -626,7 +634,6 @@ fn player_select_panel(
     // React to user inputs
     //
 
-    #[cfg(not(target_arch = "wasm32"))]
     let net_send_player = |handle: Handle<PlayerMeta>| {
         if let Some(socket) = network_socket {
             let network_handle = handle.network_handle(&asset_server);
@@ -635,7 +642,6 @@ fn player_select_panel(
         }
     };
 
-    #[cfg(not(target_arch = "wasm32"))]
     let net_send_hat = |handle: Option<Handle<HatMeta>>| {
         if let Some(socket) = network_socket {
             let network_handle = handle.map(|h| h.network_handle(&asset_server));
@@ -644,7 +650,6 @@ fn player_select_panel(
         }
     };
 
-    #[cfg(not(target_arch = "wasm32"))]
     let net_send_confirm = |confirm| {
         if let Some(socket) = network_socket {
             let message = PlayerSelectMessage::ConfirmSelection(confirm);
@@ -707,7 +712,6 @@ fn player_select_panel(
                 };
                 let next_player = state.players[next_idx];
 
-                #[cfg(not(target_arch = "wasm32"))]
                 net_send_player(next_player);
 
                 next_state = Some(PlayerSlot::SelectingPlayer {
@@ -727,7 +731,6 @@ fn player_select_panel(
                 return;
             };
             if player_control.menu_confirm_just_pressed {
-                #[cfg(not(target_arch = "wasm32"))]
                 net_send_confirm(true);
                 next_state = Some(PlayerSlot::Ready {
                     control_source,
@@ -756,7 +759,6 @@ fn player_select_panel(
                 };
                 let next_hat = state.hats[next_idx];
 
-                #[cfg(not(target_arch = "wasm32"))]
                 net_send_hat(next_hat);
 
                 next_state = Some(PlayerSlot::SelectingHat {
@@ -776,7 +778,6 @@ fn player_select_panel(
                 return;
             };
             if player_control.menu_back_just_pressed {
-                #[cfg(not(target_arch = "wasm32"))]
                 net_send_confirm(false);
                 next_state = Some(PlayerSlot::SelectingHat {
                     control_source,
