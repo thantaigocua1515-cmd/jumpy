@@ -445,6 +445,7 @@
         var base = document.getElementById('joy-base');
         var nub = document.getElementById('joy-nub');
         var joyId = null, ox = 0, oy = 0, startT = 0, lastDx = 0, lastDy = 0;
+        var moved = false, maxLen = 0, joyType = 'touch';
 
         function joyMove(e) {
           var dx = e.clientX - ox, dy = e.clientY - oy;
@@ -452,19 +453,35 @@
           var k = dirKeys(dx, dy);
           for (var code in k) setKey(code, k[code]);
           var len = Math.sqrt(dx * dx + dy * dy);
+          if (len > maxLen) maxLen = len;
+          if (len > 12) { moved = true; base.style.display = 'block'; }
           var cl = Math.min(len, RADIUS);
           var a = Math.atan2(dy, dx);
           nub.style.transform = 'translate(' + (Math.cos(a) * cl) + 'px,' + (Math.sin(a) * cl) + 'px)';
+        }
+        // A tap that never turned into a drag belongs to the game UI (menus
+        // live under this zone on the left side), so forward it to the canvas.
+        function forwardTap(x, y) {
+          var c = document.querySelector('canvas');
+          if (!c) return;
+          var baseOpts = { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0, pointerId: 987, pointerType: joyType, isPrimary: true };
+          c.dispatchEvent(new PointerEvent('pointerdown', Object.assign({}, baseOpts, { buttons: 1 })));
+          c.dispatchEvent(new MouseEvent('mousedown', Object.assign({}, baseOpts, { buttons: 1 })));
+          c.dispatchEvent(new PointerEvent('pointerup', Object.assign({}, baseOpts, { buttons: 0 })));
+          c.dispatchEvent(new MouseEvent('mouseup', Object.assign({}, baseOpts, { buttons: 0 })));
+          c.dispatchEvent(new MouseEvent('click', Object.assign({}, baseOpts, { buttons: 0 })));
         }
         function joyEnd() {
           if (joyId === null) return;
           var dt = performance.now() - startT;
           var flickUp = dt < 260 && lastDy < -52;
+          var wasTap = !moved && dt < 500;
           joyId = null;
           base.style.display = 'none';
           nub.style.transform = 'translate(0px,0px)';
           setKey('KeyA', false); setKey('KeyD', false); setKey('KeyW', false); setKey('KeyS', false);
           if (flickUp) tapKey('Space');
+          else if (wasTap) forwardTap(ox, oy);
         }
         zone.addEventListener('pointerdown', function (e) {
           if (joyId !== null) return;
@@ -473,10 +490,10 @@
           ox = e.clientX; oy = e.clientY;
           startT = performance.now();
           lastDx = 0; lastDy = 0;
+          moved = false; maxLen = 0; joyType = e.pointerType || 'touch';
           try { zone.setPointerCapture(e.pointerId); } catch (err) {}
           base.style.left = ox + 'px';
           base.style.top = oy + 'px';
-          base.style.display = 'block';
           joyMove(e);
         });
         zone.addEventListener('pointermove', function (e) {
