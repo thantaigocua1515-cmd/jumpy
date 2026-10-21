@@ -11,7 +11,6 @@ use shadow_rs::shadow;
 // Generate build info.
 shadow!(build_info);
 
-#[cfg(not(target_arch = "wasm32"))]
 mod network_game;
 
 #[derive(HasSchema, Debug, Default, Clone)]
@@ -140,9 +139,7 @@ fn main_menu_system(world: &World) {
             MenuPage::PlayerSelect => world.run_system(player_select::widget, ui),
             MenuPage::MapSelect { .. } => world.run_system(map_select::widget, ui),
             MenuPage::Credits => world.run_system(credits::widget, ui),
-            MenuPage::NetworkGame =>
-            {
-                #[cfg(not(target_arch = "wasm32"))]
+            MenuPage::NetworkGame => {
                 world.run_system(network_game::widget, ui)
             }
         });
@@ -191,27 +188,16 @@ fn home_menu(
             .show(ui, |ui| {
                 ui.set_width(meta.main_menu.menu_width);
 
-                // Local game
-                if BorderedButton::themed(
-                    &meta.theme.buttons.normal,
-                    localization.get("local-game"),
-                )
-                .min_size(vec2(ui.available_width(), 0.0))
-                .show(ui)
-                .focus_by_default(ui)
-                .clicked()
-                {
-                    ui.ctx().set_state(MenuPage::PlayerSelect);
-                }
-
-                // Online game
-                #[cfg(not(target_arch = "wasm32"))]
+                // Online game: the only game mode. On the web it matchmakes
+                // through the relay server and falls back to bot players when
+                // no other player is found.
                 if BorderedButton::themed(
                     &meta.theme.buttons.normal,
                     localization.get("online-game"),
                 )
                 .min_size(vec2(ui.available_width(), 0.0))
                 .show(ui)
+                .focus_by_default(ui)
                 .clicked()
                 {
                     ui.ctx().set_state(MenuPage::NetworkGame);
