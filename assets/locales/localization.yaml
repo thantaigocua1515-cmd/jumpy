@@ -1,3 +1,4 @@
 locales:
+  - vi-VN/locale.yaml
   - en-US/locale.yaml
   - fr-FR/locale.yaml
