@@ -19,6 +19,7 @@ bones_framework     = { git = "https://github.com/fishfolk/bones", features = ["
 bones_bevy_renderer = { git = "https://github.com/fishfolk/bones" }
 bevy_tasks          = "0.11"
 bitflags            = "2.4"
+bitfield            = "0.14"
 turborand           = { version = "0.10.0", features = ["atomic"] }
 tracing             = "0.1.37"
 puffin              = { version = "0.17.0", features = ["web"] }
@@ -44,11 +45,10 @@ shadow-rs = { version = "0.25.0", default-features = false }
 postcard = { version = "1.0", default-features = false, features = ["alloc"] }
 strum = { version = "0.25.0", features = ["derive"] }
 smallvec = "1"
+bytemuck = "1.12"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 bevy_dylib = "0.11"
-bitfield   = "0.14"
-bytemuck   = "1.12"
 
 # anyhow              = "1.0"
 # async-channel       = "1.7"
@@ -158,3 +158,19 @@ ignored = [
 # [patch.'https://github.com/fishfolk/bones']
 # bones_framework     = { path = "../bones/framework_crates/bones_framework" }
 # bones_bevy_renderer = { path = "../bones/framework_crates/bones_bevy_renderer" }
+
+# Web build dependencies for the WebSocket online transport (src/net_ws.rs).
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+web-sys      = { version = "0.3", features = ["WebSocket", "MessageEvent", "CloseEvent", "ErrorEvent", "Window", "Location", "UrlSearchParams"] }
+serde_json   = "1.0"
+# Same ggrs fork revision bones_framework uses, so the trait impls in
+# src/net_ws.rs unify with the framework's session types.
+ggrs         = { git = "https://github.com/MaxCWhitehead/ggrs.git", rev = "96499377407ce55805a9d0367b86860b74c233bd", features = ["sync-send"] }
+
+# Use our fork of bones: based on the exact upstream revision this game locks
+# to, plus the AnyGgrsSocket transport abstraction that lets the web build
+# play online over WebSocket (branch `jumpy-web`).
+[patch.'https://github.com/fishfolk/bones']
+bones_framework     = { git = "https://github.com/thantaigocua1515-cmd/bones", branch = "jumpy-web" }
+bones_bevy_renderer = { git = "https://github.com/thantaigocua1515-cmd/bones", branch = "jumpy-web" }
