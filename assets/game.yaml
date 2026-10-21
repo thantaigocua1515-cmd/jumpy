@@ -123,22 +123,23 @@ theme:
   fonts:
     - ui/FairfaxSM.ttf
     - ui/ark-pixel-16px-latin.ttf
+    - ui/VT323-Regular.ttf
 
   font_styles:
     heading:
-      family: Ark Pixel 16px latin
+      family: VT323
       size: 40
       color: FFFFFF
     bigger:
-      family: Ark Pixel 16px latin
+      family: VT323
       size: 25
       color: FFFFFF
     normal:
-      family: Ark Pixel 16px latin
+      family: VT323
       size: 20
       color: FFFFFF
     smaller:
-      family: Ark Pixel 16px latin
+      family: VT323
       size: 15
       color: FFFFFF
 
@@ -177,7 +178,7 @@ theme:
   buttons:
     normal:
       font:
-        family: Ark Pixel 16px latin
+        family: VT323
         color: FFFFFF
         size: 20
       padding:
@@ -216,7 +217,7 @@ theme:
 
     small:
       font:
-        family: Ark Pixel 16px latin
+        family: VT323
         color: FFFFFF
         size: 17
       padding:
